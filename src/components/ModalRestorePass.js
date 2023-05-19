@@ -6,8 +6,6 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
-import { sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "../firebase/firebase";
 
 const style = {
   position: "absolute",
@@ -24,14 +22,7 @@ const style = {
 export default function ModalRestorePass({ open, setOpen, email, setEmail }) {
   const handleClose = () => setOpen(false);
 
-  const restorePass = async () => {
-    try {
-      const result = await sendPasswordResetEmail(auth, email);
-      console.log(result);
-    } catch (error) {
-      console.log(error);
-    }
-  };
+  const restorePass = async () => {};
 
   const handleClickOpen = () => {
     setOpen(true);
