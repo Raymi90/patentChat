@@ -12,6 +12,8 @@ import Container from "@mui/material/Container";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { client } from "../supabase/supabaseClient";
 import ModalRestorePass from "./ModalRestorePass";
+import { Alert, Backdrop, CircularProgress, Snackbar } from "@mui/material";
+import { CustomAlert } from "./CustomAlert";
 
 function Copyright(props) {
   return (
@@ -37,15 +39,29 @@ export const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [openModalRecover, setOpenModalRecover] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [openAlert, setOpenAlert] = React.useState(false);
+  const [type, setType] = React.useState("success");
+  const [message, setMessage] = React.useState("");
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
     try {
+      setLoading(true);
       const { data, error } = await client.auth.signInWithPassword({
         email,
         password,
       });
+      if (error) {
+        setType("error");
+        setMessage("Las credenciales son incorrectas");
+        setOpenAlert(true);
+        setLoading(false);
+      }
+      if (data) {
+        setLoading(false);
+      }
     } catch (error) {
       console.log(error.message);
     }
@@ -106,8 +122,13 @@ export const Login = () => {
           <Grid container>
             <Grid item xs>
               <Link
-                href="#"
-                onClick={() => setOpenModalRecover(true)}
+                sx={{
+                  cursor: "pointer",
+                }}
+                onClick={() => {
+                  setOpenModalRecover(true);
+                  setPassword("");
+                }}
                 variant="body2"
               >
                 Olvidaste tu contraseña?
@@ -122,7 +143,22 @@ export const Login = () => {
         setEmail={setEmail}
         open={openModalRecover}
         setOpen={setOpenModalRecover}
+        setMessage={setMessage}
+        setType={setType}
+        setOpenAlert={setOpenAlert}
       />
+      <CustomAlert
+        open={openAlert}
+        setOpen={setOpenAlert}
+        type={type}
+        message={message}
+      />
+      <Backdrop
+        sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={loading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </Container>
   );
 };

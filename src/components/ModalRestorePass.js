@@ -6,6 +6,7 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
+import { client } from "../supabase/supabaseClient";
 
 const style = {
   position: "absolute",
@@ -19,13 +20,34 @@ const style = {
   p: 4,
 };
 
-export default function ModalRestorePass({ open, setOpen, email, setEmail }) {
-  const handleClose = () => setOpen(false);
+export default function ModalRestorePass({
+  open,
+  setOpen,
+  email,
+  setOpenAlert,
+  setMessage,
+  setType,
+  setEmail,
+}) {
+  const handleClose = () => {
+    setOpen(false);
+  };
 
-  const restorePass = async () => {};
+  const restorePass = async () => {
+    console.log("restore pass");
 
-  const handleClickOpen = () => {
-    setOpen(true);
+    const { data, error } = await client.auth.resetPasswordForEmail(email);
+    if (error) {
+      setType("error");
+      setMessage("No se pudo enviar el correo de recuperación de contraseña");
+      setOpenAlert(true);
+    }
+    if (data) {
+      setType("success");
+      setMessage("Se ha enviado un correo para restaurar tu contraseña");
+      setOpenAlert(true);
+      setOpen(false);
+    }
   };
 
   return (
