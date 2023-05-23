@@ -14,7 +14,7 @@ import Container from "@mui/material/Container";
 import Link from "@mui/material/Link";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import NotificationsIcon from "@mui/icons-material/Notifications";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { Logout, Settings } from "@mui/icons-material";
 import AddIcon from "@mui/icons-material/Add";
 import { client } from "../supabase/supabaseClient";
@@ -26,12 +26,13 @@ import {
 } from "../supabase/queries";
 import TagIcon from "@mui/icons-material/Tag";
 import { ModalCreateChannel } from "./ModalCreateChannel";
-
-import { deepOrange, deepPurple } from "@mui/material/colors";
+import { ChannelMenu } from "./ChannelMenu";
+import { deepOrange } from "@mui/material/colors";
 import {
   Avatar,
   Backdrop,
   CircularProgress,
+  ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
@@ -163,15 +164,10 @@ const DisconnectBadge = styled(Badge)(({ theme }) => ({
   },
 }));
 
-const SmallAvatar = styled(Avatar)(({ theme }) => ({
-  width: 22,
-  height: 22,
-  border: `2px solid ${theme.palette.background.paper}`,
-}));
-
 export const Dashboard = ({ user }) => {
   const [open, setOpen] = useState(true);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [anchorElChannel, setAnchorElChannel] = useState(null);
   const [channels, setChannels] = useState([]);
   const [loadingChannels, setLoadingChannels] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -383,12 +379,17 @@ export const Dashboard = ({ user }) => {
   }, []);
 
   const openMenu = Boolean(anchorEl);
+  const openChannelMenu = Boolean(anchorElChannel);
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
   };
   const handleClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleClickChannelMenu = (event) => {
+    setAnchorElChannel(event.currentTarget);
   };
 
   const logOut = async () => {
@@ -557,12 +558,58 @@ export const Dashboard = ({ user }) => {
             />
           ) : (
             channels.map((canal) => (
-              <ListItemButton key={canal.id}>
+              <ListItem
+                secondaryAction={
+                  <>
+                    <Tooltip title="Opciones del Canal" placement="right">
+                      <IconButton
+                        edge="end"
+                        aria-label="delete"
+                        sx={{
+                          "&:hover": {
+                            backgroundColor: "red",
+                            color: "white",
+                          },
+                        }}
+                        onClick={handleClickChannelMenu}
+                        aria-controls={
+                          openChannelMenu ? "channel-menu" : undefined
+                        }
+                        aria-haspopup="true"
+                        aria-expanded={openChannelMenu ? "true" : undefined}
+                      >
+                        <MoreVertIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </>
+                }
+                key={canal.id}
+                sx={{
+                  "&:hover": {
+                    backgroundColor: "#ff5722",
+
+                    color: "white",
+                  },
+                  cursor: "pointer",
+                }}
+              >
+                <ChannelMenu
+                  channel={canal}
+                  anchorEl={anchorElChannel}
+                  setAnchorEl={setAnchorElChannel}
+                  openMenu={openChannelMenu}
+                />
                 <ListItemIcon>
                   <TagIcon />
                 </ListItemIcon>
-                <ListItemText primary={canal.slug} />
-              </ListItemButton>
+                <ListItemText
+                  secondary={canal.slug}
+                  sx={{
+                    padding: 0,
+                    wordBreak: "break-all",
+                  }}
+                />
+              </ListItem>
             ))
           )}
         </List>
