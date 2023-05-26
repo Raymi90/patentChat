@@ -1,9 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Button, Card, Divider, Input, Popconfirm, Space, Tooltip } from "antd";
+import { Avatar, Button, Popconfirm, Tooltip, Space } from "antd";
 import { client } from "../supabase/supabaseClient";
 import {
   getMessages,
-  createMessage,
   editMessage,
   deleteMessage,
   getAllUsers,
@@ -19,7 +18,6 @@ export const ChatMessages = ({ canal, user }) => {
   const messagesEndRef = useRef(null);
 
   const [mensajes, setMensajes] = useState([]);
-  const [userData, setUserData] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
 
   useEffect(() => {
@@ -37,9 +35,6 @@ export const ChatMessages = ({ canal, user }) => {
     const getUsers = async () => {
       const { data, error } = await getAllUsers();
       if (data) {
-        data.forEach((element) => {
-          if (element.id === user.id) setUserData(element);
-        });
         setAllUsers(data);
       } else {
         console.log(error.message);
@@ -131,178 +126,167 @@ export const ChatMessages = ({ canal, user }) => {
 
   return (
     <React.Fragment>
-      {mensajes.map((mensaje) => {
-        const userInfo = allUsers.find((user) => user.id === mensaje.user_id);
-        if (userInfo) {
-          return user.id !== mensaje.user_id ? (
-            <Row
-              ref={messagesEndRef}
-              justify="start"
-              key={mensaje.id}
-              style={{
-                margin: "0px 5px 30px 0px",
-              }}
-            >
-              <Col
-                span={9}
+      <div style={{ height: "100vh" }}>
+        {mensajes.map((mensaje) => {
+          const userInfo = allUsers.find((user) => user.id === mensaje.user_id);
+          if (userInfo) {
+            return user.id !== mensaje.user_id ? (
+              <Row
+                ref={messagesEndRef}
+                justify="start"
+                key={mensaje.id}
                 style={{
-                  backgroundColor: "#f0f0f0",
-                  wordBreak: "break-all",
-                  borderRadius: 10,
-                  padding: 10,
+                  margin: "10px",
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "flex-start",
-                    alignItems: "flex-start",
-                    margin: 0,
-                    padding: 0,
-                  }}
-                >
-                  <div
+                <Col span={9}>
+                  <Space
+                    direction="horizontal"
+                    size="small"
                     style={{
-                      display: "flex",
-                      flexDirection: "row",
-                      justifyContent: "flex-start",
-                      alignItems: "center",
-                      margin: 0,
-                      padding: 0,
+                      margin: 10,
                     }}
                   >
-                    <img
-                      alt="avatar"
+                    <Avatar
                       src="https://aldecoaelias.com/images/thumbs/04.jpeg"
                       style={{
-                        width: 30,
-                        height: 30,
-                        borderRadius: 15,
-                        marginRight: 5,
+                        marginBottom: 20,
                       }}
                     />
-                    <span
+                    <div
                       style={{
-                        fontWeight: "bold",
-                        marginRight: 5,
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "flex-start",
+                        alignItems: "flex-start",
+                        margin: 0,
                       }}
                     >
-                      {userInfo.displayname ? userInfo.displayname : ""}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        color: "gray",
-                      }}
-                    >
-                      {adaptInserted_time(mensaje.inserted_at)}
-                    </span>
-                  </div>
-                  <span>{mensaje.message}</span>
-                </div>
-              </Col>
-            </Row>
-          ) : (
-            <Row
-              ref={messagesEndRef}
-              justify="end"
-              key={mensaje.id}
-              style={{
-                margin: "0px 5px 30px 0px",
-              }}
-            >
-              <Col
-                span={9}
-                style={{
-                  backgroundColor: "#9aabff",
-                  wordBreak: "break-all",
-                  borderRadius: 10,
-                  padding: 10,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "flex-start",
-                    alignItems: "flex-start",
-                    margin: 0,
-                    padding: 0,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "row",
-                      justifyContent: "flex-start",
-                      alignItems: "center",
-                      margin: 0,
-                      padding: 0,
-
-                      width: "100%",
-                    }}
-                  >
-                    <img
-                      alt="avatar"
-                      src="https://aldecoaelias.com/images/thumbs/04.jpeg"
-                      style={{
-                        width: 30,
-                        height: 30,
-                        borderRadius: 15,
-                        marginRight: 5,
-                      }}
-                    />
-                    <span
-                      style={{
-                        fontWeight: "bold",
-                        marginRight: 5,
-                      }}
-                    >
-                      {userInfo.displayname ? userInfo.displayname : ""}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        color: "#1f292d",
-                      }}
-                    >
-                      {adaptInserted_time(mensaje.inserted_at)}
-                    </span>
-                    <Popconfirm
-                      title="¿Estás seguro de eliminar este mensaje?"
-                      onConfirm={async () => await deleteMessage(mensaje.id)}
-                      okText="Si"
-                      cancelText="No"
-                      icon={<QuestionCircleOutlined style={{ color: "red" }} />}
-                    >
-                      <Tooltip title="Eliminar mensaje">
-                        <Button
+                      <Space
+                        direction="horizontal"
+                        size="small"
+                        style={{
+                          marginBottom: 5,
+                          marginLeft: 0,
+                        }}
+                      >
+                        <span
                           style={{
-                            marginLeft: "auto",
-                            textDecoration: "none",
+                            fontWeight: "bold",
+                            fontSize: 10,
                           }}
-                          type="link"
-                          icon={
-                            <DeleteOutlined
-                              style={{
-                                color: "red",
-                              }}
-                            />
-                          }
-                        />
-                      </Tooltip>
-                    </Popconfirm>
-                  </div>
-                  <span>{mensaje.message}</span>
-                </div>
-              </Col>
-            </Row>
-          );
-        } else {
-          return null;
-        }
-      })}
+                        >
+                          {userInfo.displayname}
+                        </span>
+                        <span style={{ fontSize: 8 }}>
+                          {adaptInserted_time(mensaje.inserted_at)}
+                        </span>
+                      </Space>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "row",
+                          justifyContent: "flex-start",
+                          alignItems: "center",
+                          padding: 9,
+                          backgroundColor: "#4a517a",
+                          wordBreak: "break-all",
+                          borderRadius: 5,
+                          width: "100%",
+                          maxWidth: 500,
+                          boxShadow: "0 3px 10px rgb(0 0 0 / 0.5)",
+                          color: "white",
+                        }}
+                      >
+                        <span style={{ fontSize: 10 }}>{mensaje.message}</span>
+                      </div>
+                    </div>
+                  </Space>
+                </Col>
+              </Row>
+            ) : (
+              <Row
+                ref={messagesEndRef}
+                justify="end"
+                key={mensaje.id}
+                style={{
+                  margin: "10px",
+                }}
+              >
+                <Col span={9}>
+                  <Space
+                    direction="horizontal"
+                    style={{
+                      display: "flex",
+                      flexDirection: "row",
+                      justifyContent: "flex-end",
+                      alignItems: "center",
+                      margin: 10,
+                    }}
+                  >
+                    <Avatar
+                      src="https://aldecoaelias.com/images/thumbs/04.jpeg"
+                      style={{
+                        marginBottom: 20,
+                      }}
+                    />
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "flex-start",
+                        alignItems: "flex-start",
+                        margin: 0,
+                      }}
+                    >
+                      <Space
+                        direction="horizontal"
+                        size="small"
+                        style={{
+                          marginBottom: 5,
+                          marginLeft: 5,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontWeight: "bold",
+                            fontSize: 10,
+                          }}
+                        >
+                          {userInfo.displayname}
+                        </span>
+                        <span style={{ fontSize: 8 }}>
+                          {adaptInserted_time(mensaje.inserted_at)}
+                        </span>
+                      </Space>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "row",
+                          justifyContent: "flex-start",
+                          alignItems: "center",
+                          padding: 9,
+                          backgroundColor: "#3b4161",
+                          wordBreak: "break-all",
+                          borderRadius: 5,
+                          width: "100%",
+                          maxWidth: 500,
+                          boxShadow: "0 3px 10px rgb(0 0 0 / 0.5)",
+                          color: "white",
+                        }}
+                      >
+                        <span style={{ fontSize: 10 }}>{mensaje.message}</span>
+                      </div>
+                    </div>
+                  </Space>
+                </Col>
+              </Row>
+            );
+          } else {
+            return null;
+          }
+        })}
+      </div>
     </React.Fragment>
   );
 };

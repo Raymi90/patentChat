@@ -2,6 +2,7 @@
   "name": "skiled-chat",
   "version": "0.1.0",
   "private": true,
+  "homepage": ".",
   "dependencies": {
     "@supabase/auth-ui-react": "^0.4.2",
     "@supabase/supabase-js": "^2.22.0",

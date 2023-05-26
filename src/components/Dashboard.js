@@ -26,15 +26,19 @@ import {
   Divider,
   Badge,
   Avatar,
+  Row,
+  Col,
 } from "antd";
 import { ModalCreateChannel } from "./ModalCreateChannel";
-import { CgAdd, CgHashtag, CgLogOut } from "react-icons/cg";
+import { CgHashtag } from "react-icons/cg";
 import { SlOptionsVertical, SlHome } from "react-icons/sl";
 import { Home } from "./Home";
 import { ChatMessages } from "./ChatMessages";
 import EmojiPicker from "emoji-picker-react";
-import { SendOutlined } from "@ant-design/icons";
+import { SendOutlined, PlusOutlined } from "@ant-design/icons";
 import { GrEmoji } from "react-icons/gr";
+import { UserMenu } from "./UserMenu";
+import { ChannelMembers } from "./ChannelMembers";
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -49,7 +53,6 @@ export const Dashboard = ({ user, mode, setMode }) => {
   });
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [presenceChannel, setPresenceChannel] = useState(null);
   const [usersOnline, setUsersOnline] = useState([]);
   const [openModalCreateChannel, setOpenModalCreateChannel] = useState(false);
   const [actualUser, setActualUser] = useState({
@@ -61,7 +64,6 @@ export const Dashboard = ({ user, mode, setMode }) => {
   const [component, setComponent] = useState(<Home />);
 
   const [emojiPicker, setEmojiPicker] = useState(null);
-  const [emoji, setEmoji] = useState(null);
   const [mensaje, setMensaje] = useState("");
   const [channelSelected, setChannelSelected] = useState(null);
 
@@ -186,7 +188,7 @@ export const Dashboard = ({ user, mode, setMode }) => {
       setUsersOnline(
         usersOnlineexceptMe.sort(
           (a, b) =>
-            b.online - a.online || a.displayname.localeCompare(b.displayname),
+            b.online - a.online || a.displayname?.localeCompare(b.displayname),
         ),
       );
       //remove duplicates users from usersOnline
@@ -200,8 +202,6 @@ export const Dashboard = ({ user, mode, setMode }) => {
         console.log(presenceTrackStatus);
       }
     });
-
-    setPresenceChannel(channel);
 
     const channelCanales = client
       .channel("canales")
@@ -248,7 +248,6 @@ export const Dashboard = ({ user, mode, setMode }) => {
 
     return () => {
       channel.unsubscribe();
-      setPresenceChannel(undefined);
       channelCanales.unsubscribe();
       channelMembers.unsubscribe();
     };
@@ -270,14 +269,41 @@ export const Dashboard = ({ user, mode, setMode }) => {
     },
     {
       type: "group",
-      label: (
-        <Button
-          onClick={() => setOpenModalCreateChannel(true)}
-          icon={<CgAdd />}
-        >
-          Crear Canal
-        </Button>
-      ),
+      label:
+        isAdmin &&
+        (collapsed ? (
+          <div
+            style={{
+              display: "flex",
+              direction: "row",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Tooltip title="Crear Canal">
+              <Button
+                onClick={() => setOpenModalCreateChannel(true)}
+                icon={<PlusOutlined />}
+              />
+            </Tooltip>
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "flex",
+              direction: "row",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Button
+              onClick={() => setOpenModalCreateChannel(true)}
+              icon={<PlusOutlined />}
+            >
+              Crear Canal
+            </Button>
+          </div>
+        )),
     },
     {
       type: "group",
@@ -353,14 +379,10 @@ export const Dashboard = ({ user, mode, setMode }) => {
         icon: (
           <Avatar
             size="small"
-            icon={
-              <UserOutlined
-                style={{
-                  marginLeft: 4,
-                }}
-              />
-            }
-          />
+            src="https://aldecoaelias.com/images/thumbs/04.jpeg"
+          >
+            {usuario.displayname ? usuario.displayname[0] : null}
+          </Avatar>
         ),
         onClick: () => {
           setChannelSelected(usuario);
@@ -371,21 +393,6 @@ export const Dashboard = ({ user, mode, setMode }) => {
       };
     }),
   ];
-
-  const logOut = async () => {
-    try {
-      setLoading(true);
-      const { error } = await client.auth.signOut();
-
-      if (error) {
-        console.log(error.message);
-        setLoading(false);
-      } else {
-      }
-    } catch (error) {
-      console.log(error);
-    }
-  };
 
   const sendMessage = async () => {
     //auto scroll
@@ -473,55 +480,60 @@ export const Dashboard = ({ user, mode, setMode }) => {
               }}
             />
           </Tooltip>
-          <div
+          <Space
+            direction="horizontal"
             style={{
-              display: channelSelected ? "block" : "none",
-              position: "sticky",
-              top: 0,
-              left: collapsed ? 96 : 290,
+              display: channelSelected ? "flex" : "none",
+              direction: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
             }}
           >
-            <Space
-              direction="horizontal"
+            <span
               style={{
-                display: "flex",
-                direction: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
+                marginRight: "auto",
+                padding: 0,
               }}
             >
-              <span
-                style={{
-                  marginRight: "auto",
-                  padding: 0,
-                }}
-              >
-                <CgHashtag /> {channelSelected && channelSelected.slug}
-              </span>
-              {channelSelected && channelSelected.created_by === user.id && (
-                <Tooltip title="Opciones" placement="right">
-                  <Button
-                    type="text"
-                    style={{
-                      marginTop: 5,
-                    }}
-                    shape="circle"
-                    icon={
-                      <SlOptionsVertical
-                        style={{
-                          color: mode ? "white" : "black",
-                        }}
-                      />
-                    }
-                    onClick={() => {
-                      handleOpenModalOptions();
-                    }}
-                  />
-                </Tooltip>
-              )}
-            </Space>
+              <CgHashtag /> {channelSelected && channelSelected.slug}
+            </span>
+            {channelSelected && channelSelected.created_by === user.id && (
+              <Tooltip title="Opciones" placement="right">
+                <Button
+                  type="text"
+                  style={{
+                    marginTop: 5,
+                  }}
+                  shape="circle"
+                  icon={
+                    <SlOptionsVertical
+                      style={{
+                        color: mode ? "white" : "black",
+                      }}
+                    />
+                  }
+                  onClick={() => {
+                    handleOpenModalOptions();
+                  }}
+                />
+              </Tooltip>
+            )}
+          </Space>
+          <div
+            style={{
+              display: "flex",
+              direction: "row",
+              justifyContent: "flex-end",
+              marginRight: 10,
+            }}
+          >
+            <UserMenu
+              style={{
+                marginRight: "auto",
+              }}
+              user={user}
+            />
           </div>
-          <Button type="text" icon={<CgLogOut />} onClick={logOut} />
         </Header>
         <Content
           style={{
@@ -534,80 +546,105 @@ export const Dashboard = ({ user, mode, setMode }) => {
             borderRadius: 10,
           }}
         >
-          {component}
-
-          <div
-            style={{
-              position: "fixed",
-              bottom: 60,
-              display: channelSelected ? "block" : "none",
-            }}
-          >
-            {emojiPicker}
-          </div>
-
-          <Space.Compact
-            direction="horizontal"
-            style={{
-              display: channelSelected ? "block" : "none",
-              position: "fixed",
-              left: collapsed ? 96 : 290,
-              bottom: 10,
-              maxWidth: "calc(100% - 330px)",
-              width: "calc(100% - 300px)",
-            }}
-          >
-            <Tooltip title="Insertar Emote">
-              <Button
-                type="default"
-                icon={<GrEmoji />}
-                size="small"
-                style={{
-                  color: mode ? "white" : "black",
-                  padding: 0,
-                  width: "5%",
-                }}
-                onClick={() =>
-                  setEmojiPicker(
-                    <EmojiPicker
-                      theme="auto"
-                      onEmojiClick={(emoji) => {
-                        console.log(emoji);
-                        setMensaje(
-                          (mensaje) => mensaje + " " + emoji.emoji + " ",
-                        );
-                        setEmojiPicker(null);
-                      }}
-                    />,
-                  )
-                }
-              />
-            </Tooltip>
-            <Input
-              enterKeyHint="send"
-              onPressEnter={sendMessage}
-              onFocus={() => setEmojiPicker(null)}
-              placeholder="Escribe tu mensaje aquí"
-              value={mensaje}
-              onChange={(e) => setMensaje(e.target.value)}
+          <Row gutter={[16, 16]}>
+            <Col
+              span={18}
               style={{
-                width: "90%",
+                display: channelSelected ? "block" : "none",
+                overflow: "auto",
               }}
-            />
-            <Tooltip title="Enviar mensaje">
-              <Button
-                type="default"
-                icon={<SendOutlined />}
-                size="small"
+            >
+              <div style={{ height: "calc(99vh - 160px)" }}>{component}</div>
+
+              <div
                 style={{
-                  color: mode ? "white" : "black",
-                  padding: 0,
-                  width: "5%",
+                  position: "fixed",
+                  bottom: 60,
+                  display: channelSelected ? "block" : "none",
                 }}
-                onClick={sendMessage}
+              >
+                {emojiPicker}
+              </div>
+
+              <Space.Compact
+                direction="horizontal"
+                style={{
+                  display: channelSelected ? "block" : "none",
+                  position: "fixed",
+                  left: collapsed ? 96 : 290,
+                  bottom: 10,
+                  maxWidth: "calc(75% - 250px)",
+                  width: "calc(75% - 250px)",
+                }}
+              >
+                <Tooltip title="Insertar Emote">
+                  <Button
+                    type="default"
+                    icon={<GrEmoji />}
+                    size="small"
+                    style={{
+                      color: mode ? "white" : "black",
+                      padding: 0,
+                      width: "5%",
+                    }}
+                    onClick={() =>
+                      setEmojiPicker(
+                        <EmojiPicker
+                          theme="auto"
+                          onEmojiClick={(emoji) => {
+                            console.log(emoji);
+                            setMensaje(
+                              (mensaje) => mensaje + " " + emoji.emoji + " ",
+                            );
+                            setEmojiPicker(null);
+                          }}
+                        />,
+                      )
+                    }
+                  />
+                </Tooltip>
+                <Input
+                  enterKeyHint="send"
+                  onPressEnter={sendMessage}
+                  onFocus={() => setEmojiPicker(null)}
+                  placeholder="Escribe tu mensaje aquí"
+                  value={mensaje}
+                  onChange={(e) => setMensaje(e.target.value)}
+                  style={{
+                    width: "90%",
+                  }}
+                />
+                <Tooltip title="Enviar mensaje">
+                  <Button
+                    type="default"
+                    icon={<SendOutlined />}
+                    size="small"
+                    style={{
+                      color: mode ? "white" : "black",
+                      padding: 0,
+                      width: "5%",
+                    }}
+                    onClick={sendMessage}
+                  />
+                </Tooltip>
+              </Space.Compact>
+            </Col>
+            <Col
+              span={6}
+              style={{
+                display: channelSelected ? "block" : "none",
+                borderLeft: "1px solid #f0f0f0",
+                position: "sticky",
+                right: 0,
+              }}
+            >
+              <ChannelMembers
+                channelSelected={channelSelected}
+                user={user}
+                mode={mode}
               />
-            </Tooltip>
-          </Space.Compact>
+            </Col>
+          </Row>
         </Content>
       </Layout>
       <ModalCreateChannel
