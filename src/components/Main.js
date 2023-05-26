@@ -1,25 +1,20 @@
 import { Login } from "./Login";
 import { Dashboard } from "./Dashboard";
 import React, { useEffect, useState } from "react";
-import { client, channel } from "../supabase/supabaseClient";
-import { ThemeProvider, createTheme } from "@mui/material";
+import { client } from "../supabase/supabaseClient";
+import { ConfigProvider, theme } from "antd";
 import { ResetPassword } from "./ResetPassword";
-import { CustomAlert } from "./CustomAlert";
-import { RealtimeChannel } from "@supabase/supabase-js";
 
 export const Main = () => {
   const [session, setSession] = useState(null);
   const [openModalRecover, setOpenModalRecover] = useState(false);
-  const [openAlert, setOpenAlert] = useState(false);
-  const [type, setType] = useState("success");
-  const [message, setMessage] = useState("");
-
-  const [mode, setMode] = useState("dark");
+  const [mode, setMode] = useState(false);
+  const { defaultAlgorithm, darkAlgorithm } = theme;
 
   window
     .matchMedia("(prefers-color-scheme: dark)")
     .addEventListener("change", (event) => {
-      setMode(event.matches ? "dark" : "light");
+      setMode(event.matches ? true : false);
     });
 
   useEffect(() => {
@@ -47,31 +42,17 @@ export const Main = () => {
   }, []);
 
   return (
-    <ThemeProvider
-      theme={createTheme({
-        palette: {
-          mode,
-        },
-      })}
+    <ConfigProvider
+      theme={{
+        algorithm: mode ? darkAlgorithm : defaultAlgorithm,
+      }}
     >
       {session ? (
         <Dashboard user={session.user} mode={mode} setMode={setMode} />
       ) : (
         <Login />
       )}
-      <ResetPassword
-        open={openModalRecover}
-        setOpen={setOpenModalRecover}
-        setOpenAlert={setOpenAlert}
-        setType={setType}
-        setMessage={setMessage}
-      />
-      <CustomAlert
-        open={openAlert}
-        setOpen={setOpenAlert}
-        type={type}
-        message={message}
-      />
-    </ThemeProvider>
+      <ResetPassword open={openModalRecover} setOpen={setOpenModalRecover} />
+    </ConfigProvider>
   );
 };

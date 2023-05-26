@@ -1,34 +1,12 @@
 import React, { useEffect } from "react";
-import Button from "@mui/material/Button";
-import TextField from "@mui/material/TextField";
-import Dialog from "@mui/material/Dialog";
-import Paper from "@mui/material/Paper";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogContentText from "@mui/material/DialogContentText";
-import DialogTitle from "@mui/material/DialogTitle";
+
 import {
   getAllUsers,
   getChannels,
   createChannel,
   createChannelMembers,
 } from "../supabase/queries";
-import Autocomplete from "@mui/material/Autocomplete";
-import Draggable from "react-draggable";
-import { InputAdornment } from "@mui/material";
-import ErrorIcon from "@mui/icons-material/Error";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-
-function PaperComponent(props) {
-  return (
-    <Draggable
-      handle="#draggable-dialog-title"
-      cancel={'[class*="MuiDialogContent-root"]'}
-    >
-      <Paper {...props} />
-    </Draggable>
-  );
-}
+import { Input, Modal, Select, Typography } from "antd";
 
 export const ModalCreateChannel = ({ user, open, setOpen }) => {
   const [allUsers, setAllUsers] = React.useState([]);
@@ -44,7 +22,13 @@ export const ModalCreateChannel = ({ user, open, setOpen }) => {
     const getUsers = async () => {
       const users = await getAllUsers();
       if (users && !users.error) {
-        setAllUsers(users.data.filter((usuario) => usuario.id !== user.id));
+        const usersExceptMe = users.data.filter(
+          (usuario) => usuario.id !== user.id,
+        );
+        const usersExceptMeOptions = usersExceptMe.map((usuario) => {
+          return { value: usuario.id, label: usuario.displayname };
+        });
+        setAllUsers(usersExceptMeOptions);
       } else {
         alert(users.error.message);
         return [];
@@ -71,7 +55,8 @@ export const ModalCreateChannel = ({ user, open, setOpen }) => {
 
   const handleChannelNameChange = (event) => {
     const exists = allChannels.find(
-      (channel) => channel.slug === event.target.value.trim(),
+      (channel) =>
+        channel.slug.toUpperCase() === event.target.value.toUpperCase().trim(),
     );
     if (exists) {
       setErrorChannelName({
@@ -106,10 +91,10 @@ export const ModalCreateChannel = ({ user, open, setOpen }) => {
       const channel = result.data[0];
       channelMembers.forEach(async (member) => {
         const usuario = allUsers.find(
-          (usuario) => usuario.displayname === member,
+          (usuario) => usuario.value === member.value,
         );
         const resultMembers = await createChannelMembers(
-          usuario.id,
+          usuario.value,
           user.id,
           channel.id,
         );
@@ -128,62 +113,50 @@ export const ModalCreateChannel = ({ user, open, setOpen }) => {
 
   return (
     <div>
-      <Dialog
+      <Modal
         open={open}
         onClose={handleClose}
-        fullWidth
         aria-labelledby="draggable-dialog-title"
-        PaperComponent={PaperComponent}
+        onOk={handleCreateChannel}
+        onCancel={handleClose}
+        okText="Crear canal"
+        cancelText="Cerrar"
       >
-        <DialogTitle style={{ cursor: "move" }} id="draggable-dialog-title">
-          Crear Canal
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText></DialogContentText>
+        <Typography.Title level={3}>Crear canal</Typography.Title>
 
-          <TextField
-            autoFocus
-            margin="dense"
-            id="name"
-            label="Nombre del canal"
-            type="text"
-            fullWidth
-            sx={{ mb: 2 }}
-            value={channelName}
-            onChange={handleChannelNameChange}
-            error={errorChannelName.error}
-            helperText={errorChannelName.message}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  {errorChannelName.error ? (
-                    <ErrorIcon color="error" />
-                  ) : (
-                    <CheckCircleIcon color="success" />
-                  )}
-                </InputAdornment>
-              ),
-            }}
-          />
+        <Input
+          autoFocus
+          placeholder="Nombre del canal"
+          type="text"
+          style={{ marginBottom: 2 }}
+          value={channelName}
+          onChange={handleChannelNameChange}
+          status={errorChannelName.error ? "error" : "success"}
+        />
+        <span
+          style={{
+            color: "red",
+            display: errorChannelName.error ? "block" : "none",
+          }}
+        >
+          {errorChannelName.message}
+        </span>
 
-          <Autocomplete
-            fullWidth
-            multiple
-            value={channelMembers}
-            id="combo-box-demo"
-            options={allUsers.map((option) => option.displayname)}
-            renderInput={(params) => <TextField {...params} label="Miembros" />}
-            onChange={(event, value) => {
-              console.log(value);
-              setChannelMembers(value);
-            }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>Cerrar</Button>
-          <Button onClick={handleCreateChannel}>Crear canal</Button>
-        </DialogActions>
-      </Dialog>
+        <Select
+          mode="tags"
+          style={{
+            width: "100%",
+          }}
+          placeholder="Selecciona los miembros del canal"
+          value={channelMembers}
+          id="combo-box-demo"
+          options={allUsers}
+          onChange={(event, value) => {
+            console.log(value);
+            setChannelMembers(value);
+          }}
+        />
+      </Modal>
     </div>
   );
 };

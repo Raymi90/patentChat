@@ -168,6 +168,78 @@ const getAllChannelMembers = async () => {
   }
 };
 
+const getMessages = async (channel_id) => {
+  const { data, error } = await client
+    .from("messages")
+    .select()
+    .match({ channel_id: channel_id });
+
+  if (error) {
+    return { error: true, message: error.message, data: null };
+  }
+
+  if (data) {
+    return { error: false, data: data, message: "Messages found" };
+  }
+};
+
+const createMessage = async (message, channel_id, user_id) => {
+  const dataInsert = {
+    channel_id: channel_id,
+    user_id: user_id,
+    message: message,
+  };
+
+  const { data, error } = await client
+    .from("messages")
+    .insert([dataInsert])
+    .select();
+
+  if (error) {
+    console.log(error.message);
+    return { error: true, data: null, message: error.message };
+  }
+  if (data) {
+    return { error: false, data: data, message: "Message created" };
+  }
+};
+
+const editMessage = async (id, message) => {
+  const dataUpdate = {
+    message: message,
+  };
+
+  const { data, error } = await client
+    .from("messages")
+    .update(dataUpdate)
+    .match({ id })
+    .select();
+
+  if (error) {
+    console.log(error.message);
+    return { error: true, data: null, message: error.message };
+  }
+  if (data) {
+    return { error: false, data: data, message: "Message updated" };
+  }
+};
+
+const deleteMessage = async (id) => {
+  const { data, error } = await client
+    .from("messages")
+    .delete()
+    .match({ id })
+    .select();
+
+  if (error) {
+    console.log(error.message);
+    return { error: true, data: null, message: error.message };
+  }
+  if (data) {
+    return { error: false, data: data, message: "Message deleted" };
+  }
+};
+
 export {
   createChannel,
   getChannels,
@@ -179,4 +251,8 @@ export {
   deleteUser,
   createChannelMembers,
   getAllChannelMembers,
+  getMessages,
+  createMessage,
+  editMessage,
+  deleteMessage,
 };

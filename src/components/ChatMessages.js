@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Button, Card, Divider, Input, Space, Tooltip } from "antd";
+import { Button, Card, Divider, Input, Popconfirm, Space, Tooltip } from "antd";
 import { client } from "../supabase/supabaseClient";
 import {
   getMessages,
@@ -9,6 +9,11 @@ import {
   getAllUsers,
 } from "../supabase/queries";
 import { Col, Row } from "antd";
+import {
+  EditOutlined,
+  DeleteOutlined,
+  QuestionCircleOutlined,
+} from "@ant-design/icons";
 
 export const ChatMessages = ({ canal, user }) => {
   const messagesEndRef = useRef(null);
@@ -43,20 +48,36 @@ export const ChatMessages = ({ canal, user }) => {
     getUsers();
     getMensajes();
 
-    const messages = client
+    const new_messages = client
       .channel("new-message")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages" },
         (payload) => {
           console.log(payload.new);
-          setMensajes([...mensajes, payload.new]);
+          if (payload.new.channel_id === canal.id)
+            setMensajes((mensajes) => [...mensajes, payload.new]);
+        },
+      )
+      .subscribe();
+
+    const delete_messages = client
+      .channel("delete-message")
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "messages" },
+        (payload) => {
+          console.log(payload.new);
+          setMensajes((mensajes) =>
+            mensajes.filter((m) => m.id !== payload.old.id),
+          );
         },
       )
       .subscribe();
 
     return () => {
-      messages.unsubscribe();
+      new_messages.unsubscribe();
+      delete_messages.unsubscribe();
     };
   }, [canal]);
 
@@ -110,19 +131,9 @@ export const ChatMessages = ({ canal, user }) => {
 
   return (
     <React.Fragment>
-      <Space
-        direction="vertical"
-        style={{
-          minHeight: "80vh",
-          display: "flex",
-          direction: "column",
-          justifyContent: "space-between",
-          margin: 0,
-        }}
-      >
-        {mensajes.map((mensaje) => {
-          const userInfo = allUsers.find((user) => user.id === mensaje.user_id);
-
+      {mensajes.map((mensaje) => {
+        const userInfo = allUsers.find((user) => user.id === mensaje.user_id);
+        if (userInfo) {
           return user.id !== mensaje.user_id ? (
             <Row
               ref={messagesEndRef}
@@ -133,7 +144,7 @@ export const ChatMessages = ({ canal, user }) => {
               }}
             >
               <Col
-                span={10}
+                span={9}
                 style={{
                   backgroundColor: "#f0f0f0",
                   wordBreak: "break-all",
@@ -141,15 +152,6 @@ export const ChatMessages = ({ canal, user }) => {
                   padding: 10,
                 }}
               >
-                <img
-                  alt="avatar"
-                  src=""
-                  style={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: 15,
-                  }}
-                />
                 <div
                   style={{
                     display: "flex",
@@ -170,13 +172,23 @@ export const ChatMessages = ({ canal, user }) => {
                       padding: 0,
                     }}
                   >
+                    <img
+                      alt="avatar"
+                      src="https://aldecoaelias.com/images/thumbs/04.jpeg"
+                      style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: 15,
+                        marginRight: 5,
+                      }}
+                    />
                     <span
                       style={{
                         fontWeight: "bold",
                         marginRight: 5,
                       }}
                     >
-                      {userInfo.displayname}
+                      {userInfo.displayname ? userInfo.displayname : ""}
                     </span>
                     <span
                       style={{
@@ -201,7 +213,7 @@ export const ChatMessages = ({ canal, user }) => {
               }}
             >
               <Col
-                span={10}
+                span={9}
                 style={{
                   backgroundColor: "#9aabff",
                   wordBreak: "break-all",
@@ -209,15 +221,6 @@ export const ChatMessages = ({ canal, user }) => {
                   padding: 10,
                 }}
               >
-                <img
-                  alt="avatar"
-                  src=""
-                  style={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: 15,
-                  }}
-                />
                 <div
                   style={{
                     display: "flex",
@@ -236,32 +239,70 @@ export const ChatMessages = ({ canal, user }) => {
                       alignItems: "center",
                       margin: 0,
                       padding: 0,
+
+                      width: "100%",
                     }}
                   >
+                    <img
+                      alt="avatar"
+                      src="https://aldecoaelias.com/images/thumbs/04.jpeg"
+                      style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: 15,
+                        marginRight: 5,
+                      }}
+                    />
                     <span
                       style={{
                         fontWeight: "bold",
                         marginRight: 5,
                       }}
                     >
-                      {userInfo.displayname}
+                      {userInfo.displayname ? userInfo.displayname : ""}
                     </span>
                     <span
                       style={{
                         fontSize: 10,
-                        color: "gray",
+                        color: "#1f292d",
                       }}
                     >
                       {adaptInserted_time(mensaje.inserted_at)}
                     </span>
+                    <Popconfirm
+                      title="¿Estás seguro de eliminar este mensaje?"
+                      onConfirm={async () => await deleteMessage(mensaje.id)}
+                      okText="Si"
+                      cancelText="No"
+                      icon={<QuestionCircleOutlined style={{ color: "red" }} />}
+                    >
+                      <Tooltip title="Eliminar mensaje">
+                        <Button
+                          style={{
+                            marginLeft: "auto",
+                            textDecoration: "none",
+                          }}
+                          type="link"
+                          icon={
+                            <DeleteOutlined
+                              style={{
+                                color: "red",
+                              }}
+                            />
+                          }
+                        />
+                      </Tooltip>
+                    </Popconfirm>
                   </div>
                   <span>{mensaje.message}</span>
                 </div>
               </Col>
             </Row>
           );
-        })}
-      </Space>
+        } else {
+          return null;
+        }
+      })}
     </React.Fragment>
   );
 };

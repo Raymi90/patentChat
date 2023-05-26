@@ -1,175 +1,52 @@
 import React, { useState, useEffect } from "react";
-import { styled } from "@mui/material/styles";
-import CssBaseline from "@mui/material/CssBaseline";
-import MuiDrawer from "@mui/material/Drawer";
-import Box from "@mui/material/Box";
-import MuiAppBar from "@mui/material/AppBar";
-import Toolbar from "@mui/material/Toolbar";
-import List from "@mui/material/List";
-import Typography from "@mui/material/Typography";
-import Divider from "@mui/material/Divider";
-import IconButton from "@mui/material/IconButton";
-import Badge from "@mui/material/Badge";
-import Container from "@mui/material/Container";
-import Link from "@mui/material/Link";
-import MenuIcon from "@mui/icons-material/Menu";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
-import { Logout, Settings } from "@mui/icons-material";
-import AddIcon from "@mui/icons-material/Add";
 import { client } from "../supabase/supabaseClient";
 import {
   getChannels,
   getAdmins,
   getAllUsers,
   getAllChannelMembers,
+  createMessage,
 } from "../supabase/queries";
-import TagIcon from "@mui/icons-material/Tag";
-import { ModalCreateChannel } from "./ModalCreateChannel";
-import { ChannelMenu } from "./ChannelMenu";
-import { deepOrange } from "@mui/material/colors";
+//import { ModalCreateChannel } from "./ModalCreateChannel";
+//import { ChannelMenu } from "./ChannelMenu";
 import {
-  Avatar,
-  Backdrop,
-  CircularProgress,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
+  UserOutlined,
+} from "@ant-design/icons";
+import {
+  Button,
+  Layout,
   Menu,
-  MenuItem,
-  Skeleton,
+  theme,
+  Space,
+  Typography,
   Tooltip,
-} from "@mui/material";
+  Input,
+  Divider,
+  Badge,
+  Avatar,
+} from "antd";
+import { ModalCreateChannel } from "./ModalCreateChannel";
+import { CgAdd, CgHashtag, CgLogOut } from "react-icons/cg";
+import { SlOptionsVertical, SlHome } from "react-icons/sl";
+import { Home } from "./Home";
+import { ChatMessages } from "./ChatMessages";
+import EmojiPicker from "emoji-picker-react";
+import { SendOutlined } from "@ant-design/icons";
+import { GrEmoji } from "react-icons/gr";
 
-function Copyright(props) {
-  return (
-    <Typography
-      variant="body2"
-      color="text.secondary"
-      align="center"
-      {...props}
-    >
-      {"Copyright © "}
-      <Link color="inherit" href="https://patransip.com/">
-        Patrans ip
-      </Link>{" "}
-      {new Date().getFullYear()}
-      {"."}
-    </Typography>
-  );
-}
+const { Header, Sider, Content } = Layout;
+const { Text } = Typography;
 
-const drawerWidth = 240;
-
-const AppBar = styled(MuiAppBar, {
-  shouldForwardProp: (prop) => prop !== "open",
-})(({ theme, open }) => ({
-  zIndex: theme.zIndex.drawer + 1,
-  transition: theme.transitions.create(["width", "margin"], {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.leavingScreen,
-  }),
-  ...(open && {
-    marginLeft: drawerWidth,
-    width: `calc(100% - ${drawerWidth}px)`,
-    transition: theme.transitions.create(["width", "margin"], {
-      easing: theme.transitions.easing.sharp,
-      duration: theme.transitions.duration.enteringScreen,
-    }),
-  }),
-}));
-
-const Drawer = styled(MuiDrawer, {
-  shouldForwardProp: (prop) => prop !== "open",
-})(({ theme, open }) => ({
-  "& .MuiDrawer-paper": {
-    position: "relative",
-    whiteSpace: "nowrap",
-    width: drawerWidth,
-    transition: theme.transitions.create("width", {
-      easing: theme.transitions.easing.sharp,
-      duration: theme.transitions.duration.enteringScreen,
-    }),
-    boxSizing: "border-box",
-    ...(!open && {
-      overflowX: "hidden",
-      transition: theme.transitions.create("width", {
-        easing: theme.transitions.easing.sharp,
-        duration: theme.transitions.duration.leavingScreen,
-      }),
-      width: theme.spacing(7),
-      [theme.breakpoints.up("sm")]: {
-        width: theme.spacing(9),
-      },
-    }),
-  },
-}));
-
-const ConnectedBadge = styled(Badge)(({ theme }) => ({
-  "& .MuiBadge-badge": {
-    backgroundColor: "#44b700",
-    color: "#44b700",
-    boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
-    "&::after": {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
-      borderRadius: "50%",
-      animation: "ripple 1.2s infinite ease-in-out",
-      border: "1px solid currentColor",
-      content: '""',
-    },
-  },
-  "@keyframes ripple": {
-    "0%": {
-      transform: "scale(.8)",
-      opacity: 1,
-    },
-    "100%": {
-      transform: "scale(2.4)",
-      opacity: 0,
-    },
-  },
-}));
-
-const DisconnectBadge = styled(Badge)(({ theme }) => ({
-  "& .MuiBadge-badge": {
-    backgroundColor: "#ff0000",
-    color: "#ff0000",
-    boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
-    "&::after": {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
-      borderRadius: "50%",
-      animation: "ripple 1.2s infinite ease-in-out",
-      border: "1px solid currentColor",
-      content: '""',
-    },
-  },
-  "@keyframes ripple": {
-    "0%": {
-      transform: "scale(.8)",
-      opacity: 1,
-    },
-    "100%": {
-      transform: "scale(2.4)",
-      opacity: 0,
-    },
-  },
-}));
-
-export const Dashboard = ({ user }) => {
+export const Dashboard = ({ user, mode, setMode }) => {
+  const [collapsed, setCollapsed] = useState(false);
   const [open, setOpen] = useState(true);
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [anchorElChannel, setAnchorElChannel] = useState(null);
   const [channels, setChannels] = useState([]);
-  const [loadingChannels, setLoadingChannels] = useState(false);
+  const [channelToMenu, setChannelToMenu] = useState({
+    id: 0,
+    slug: "",
+  });
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [presenceChannel, setPresenceChannel] = useState(null);
@@ -180,6 +57,17 @@ export const Dashboard = ({ user }) => {
     displayname: "",
     profilePic: "",
   });
+  const [modalOptionsVisible, setModalOptionsVisible] = useState(false);
+  const [component, setComponent] = useState(<Home />);
+
+  const [emojiPicker, setEmojiPicker] = useState(null);
+  const [emoji, setEmoji] = useState(null);
+  const [mensaje, setMensaje] = useState("");
+  const [channelSelected, setChannelSelected] = useState(null);
+
+  const {
+    token: { colorBgContainer },
+  } = theme.useToken();
 
   const toggleDrawer = () => {
     setOpen(!open);
@@ -190,6 +78,7 @@ export const Dashboard = ({ user }) => {
   }
 
   const getUsers = async () => {
+    console.log(mode);
     const users = await getAllUsers();
     if (users && !users.error) {
       return users.data;
@@ -201,7 +90,6 @@ export const Dashboard = ({ user }) => {
 
   const getCanales = async () => {
     let canalArray = [];
-    setLoadingChannels(true);
     const canales = await getChannels();
 
     if (canales && !canales.error) {
@@ -227,10 +115,8 @@ export const Dashboard = ({ user }) => {
         alert(memberChannels.error.message);
       }
       canalArray = removeDuplicates(canalArray);
-      setLoadingChannels(false);
       setChannels(canalArray);
     } else {
-      setLoadingChannels(false);
       alert(canales.error.message);
     }
   };
@@ -243,7 +129,6 @@ export const Dashboard = ({ user }) => {
     };
 
     const getAdministadores = async () => {
-      setLoadingChannels(true);
       const admins = await getAdmins();
 
       if (admins && !admins.error) {
@@ -252,9 +137,7 @@ export const Dashboard = ({ user }) => {
             setIsAdmin(true);
           }
         });
-        setLoadingChannels(false);
       } else {
-        setLoadingChannels(false);
         alert(admins.error.message);
       }
     };
@@ -262,9 +145,7 @@ export const Dashboard = ({ user }) => {
     defineUser();
     getCanales();
     getAdministadores();
-  }, [user]);
 
-  useEffect(() => {
     const channel = client.channel(`users-online`, {
       config: {
         presence: {
@@ -322,14 +203,7 @@ export const Dashboard = ({ user }) => {
 
     setPresenceChannel(channel);
 
-    return () => {
-      channel.unsubscribe();
-      setPresenceChannel(undefined);
-    };
-  }, [user]);
-
-  useEffect(() => {
-    const channels = client
+    const channelCanales = client
       .channel("canales")
       .on(
         "postgres_changes",
@@ -373,24 +247,130 @@ export const Dashboard = ({ user }) => {
       .subscribe();
 
     return () => {
-      channels.unsubscribe();
+      channel.unsubscribe();
+      setPresenceChannel(undefined);
+      channelCanales.unsubscribe();
       channelMembers.unsubscribe();
     };
-  }, []);
+  }, [user]);
 
-  const openMenu = Boolean(anchorEl);
-  const openChannelMenu = Boolean(anchorElChannel);
-
-  const handleClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-  const handleClose = () => {
-    setAnchorEl(null);
+  const handleOpenModalOptions = () => {
+    setModalOptionsVisible(true);
   };
 
-  const handleClickChannelMenu = (event) => {
-    setAnchorElChannel(event.currentTarget);
-  };
+  const items = [
+    {
+      key: "0",
+      label: "Inicio",
+      icon: <SlHome />,
+      onClick: () => {
+        setChannelSelected(null);
+        setComponent(<Home />);
+      },
+    },
+    {
+      type: "group",
+      label: (
+        <Button
+          onClick={() => setOpenModalCreateChannel(true)}
+          icon={<CgAdd />}
+        >
+          Crear Canal
+        </Button>
+      ),
+    },
+    {
+      type: "group",
+      label: "Canales",
+    },
+    {
+      type: "divider",
+    },
+
+    ...channels.map((canal) => {
+      return {
+        key: canal.id,
+        label: (
+          <Space
+            style={{
+              display: "flex",
+              direction: "row",
+              alignItems: "center",
+              listStyleType: "none",
+              padding: 0,
+              justifyContent: "space-between",
+            }}
+          >
+            <span
+              style={{
+                marginRight: "auto",
+              }}
+            >
+              {canal.slug}
+            </span>
+          </Space>
+        ),
+        title: canal.slug,
+        icon: <CgHashtag />,
+        onClick: () => {
+          setChannelSelected(canal);
+          setComponent(<ChatMessages canal={canal} mode={mode} user={user} />);
+        },
+      };
+    }),
+    {
+      type: "group",
+      label: "Usuarios",
+    },
+    {
+      type: "divider",
+    },
+    ...usersOnline.map((usuario) => {
+      return {
+        key: usuario.id,
+        label: (
+          <Space
+            style={{
+              display: "flex",
+              direction: "row",
+              alignItems: "center",
+              listStyleType: "none",
+              padding: 0,
+              justifyContent: "space-between",
+            }}
+          >
+            <span
+              style={{
+                marginRight: "auto",
+              }}
+            >
+              {usuario.displayname}
+            </span>
+            {usuario.online ? <Badge color="green" /> : <Badge color="red" />}
+          </Space>
+        ),
+        title: usuario.displayname,
+        icon: (
+          <Avatar
+            size="small"
+            icon={
+              <UserOutlined
+                style={{
+                  marginLeft: 4,
+                }}
+              />
+            }
+          />
+        ),
+        onClick: () => {
+          setChannelSelected(usuario);
+          setComponent(
+            <ChatMessages canal={usuario} mode={mode} user={user} />,
+          );
+        },
+      };
+    }),
+  ];
 
   const logOut = async () => {
     try {
@@ -407,280 +387,234 @@ export const Dashboard = ({ user }) => {
     }
   };
 
+  const sendMessage = async () => {
+    //auto scroll
+
+    if (mensaje.length > 0) {
+      const { data, error } = await createMessage(
+        mensaje,
+        channelSelected.id,
+        user.id,
+      );
+      if (data) {
+        console.log(data);
+      }
+      if (error) {
+        console.log(error.message);
+      }
+      setMensaje("");
+    }
+  };
+
   return (
-    <Box sx={{ display: "flex" }}>
-      <CssBaseline />
-      <AppBar position="absolute" open={open}>
-        <Toolbar
-          sx={{
-            pr: "24px", // keep right padding when drawer closed
-          }}
-        >
-          <IconButton
-            edge="start"
-            color="inherit"
-            aria-label="open drawer"
-            onClick={toggleDrawer}
-            sx={{
-              marginRight: "36px",
-              ...(open && { display: "none" }),
-            }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography
-            component="h1"
-            variant="h6"
-            color="inherit"
-            noWrap
-            sx={{ flexGrow: 1 }}
-          >
-            Dashboard
-          </Typography>
-
-          <Tooltip title={actualUser?.displayname}>
-            <IconButton
-              onClick={handleClick}
-              size="small"
-              sx={{ ml: 2 }}
-              aria-controls={openMenu ? "account-menu" : undefined}
-              aria-haspopup="true"
-              aria-expanded={openMenu ? "true" : undefined}
-            >
-              <Avatar sx={{ width: 32, height: 32 }}>
-                {actualUser?.displayname[0]}
-              </Avatar>
-            </IconButton>
-          </Tooltip>
-
-          <Menu
-            anchorEl={anchorEl}
-            id="account-menu"
-            open={openMenu}
-            onClose={handleClose}
-            onClick={handleClose}
-            PaperProps={{
-              elevation: 0,
-              sx: {
-                overflow: "visible",
-                filter: "drop-shadow(0px 2px 8px rgba(0,0,0,0.32))",
-                mt: 1.5,
-                "& .MuiAvatar-root": {
-                  width: 32,
-                  height: 32,
-                  ml: -0.5,
-                  mr: 1,
-                },
-                "&:before": {
-                  content: '""',
-                  display: "block",
-                  position: "absolute",
-                  top: 0,
-                  right: 14,
-                  width: 10,
-                  height: 10,
-                  bgcolor: "background.paper",
-                  transform: "translateY(-50%) rotate(45deg)",
-                  zIndex: 0,
-                },
-              },
-            }}
-            transformOrigin={{ horizontal: "right", vertical: "top" }}
-            anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
-          >
-            <MenuItem onClick={handleClose}>
-              <Avatar /> {actualUser?.displayname}
-            </MenuItem>
-            <MenuItem onClick={handleClose}>
-              <ListItemIcon>
-                <Settings fontSize="small" />
-              </ListItemIcon>
-              Settings
-            </MenuItem>
-            <MenuItem onClick={logOut}>
-              <ListItemIcon>
-                <Logout fontSize="small" />
-              </ListItemIcon>
-              Logout
-            </MenuItem>
-          </Menu>
-        </Toolbar>
-      </AppBar>
-      <Drawer variant="permanent" open={open}>
-        <Toolbar
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "flex-end",
-            px: [1],
-          }}
-        >
-          <IconButton onClick={toggleDrawer}>
-            <ChevronLeftIcon />
-          </IconButton>
-        </Toolbar>
-        {isAdmin && (
-          <>
-            <Divider />
-
-            <List component="nav">
-              <ListItemButton onClick={() => setOpenModalCreateChannel(true)}>
-                <ListItemIcon>
-                  <AddIcon />
-                </ListItemIcon>
-                <ListItemText primary="Agregar Canal" />
-              </ListItemButton>
-            </List>
-          </>
-        )}
-        <Divider sx={{ my: 1 }}>
-          <ListItemText primary="Mis Canales" />
-        </Divider>
-        <List component="nav">
-          {loadingChannels ? (
-            <div
-              style={{
-                marginLeft: "1rem",
-                marginRight: "1rem",
-              }}
-            >
-              <Skeleton variant="text" sx={{ fontSize: "1rem" }} />
-              <Skeleton variant="text" sx={{ fontSize: "1rem" }} />
-              <Skeleton variant="text" sx={{ fontSize: "1rem" }} />
-            </div>
-          ) : channels.length === 0 ? (
-            <ListItemText
-              sx={{
-                textAlign: "center",
-                fontSize: "0.2rem",
-              }}
-              secondary="No perteneces a ningún canal"
-            />
-          ) : (
-            channels.map((canal) => (
-              <ListItem
-                secondaryAction={
-                  <>
-                    <Tooltip title="Opciones del Canal" placement="right">
-                      <IconButton
-                        edge="end"
-                        aria-label="delete"
-                        sx={{
-                          "&:hover": {
-                            backgroundColor: "red",
-                            color: "white",
-                          },
-                        }}
-                        onClick={handleClickChannelMenu}
-                        aria-controls={
-                          openChannelMenu ? "channel-menu" : undefined
-                        }
-                        aria-haspopup="true"
-                        aria-expanded={openChannelMenu ? "true" : undefined}
-                      >
-                        <MoreVertIcon />
-                      </IconButton>
-                    </Tooltip>
-                  </>
-                }
-                key={canal.id}
-                sx={{
-                  "&:hover": {
-                    backgroundColor: "#ff5722",
-
-                    color: "white",
-                  },
-                  cursor: "pointer",
-                }}
-              >
-                <ChannelMenu
-                  channel={canal}
-                  anchorEl={anchorElChannel}
-                  setAnchorEl={setAnchorElChannel}
-                  openMenu={openChannelMenu}
-                />
-                <ListItemIcon>
-                  <TagIcon />
-                </ListItemIcon>
-                <ListItemText
-                  secondary={canal.slug}
-                  sx={{
-                    padding: 0,
-                    wordBreak: "break-all",
-                  }}
-                />
-              </ListItem>
-            ))
-          )}
-        </List>
-        <Divider sx={{ my: 1 }}>
-          <ListItemText primary="Usuarios" />
-        </Divider>
-        <List component="nav">
-          {usersOnline.map((user) => (
-            <Tooltip title={user.displayname}>
-              <ListItemButton key={user.id}>
-                {user.online ? (
-                  <ConnectedBadge
-                    overlap="circular"
-                    anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-                    variant="dot"
-                  >
-                    <Avatar sx={{ bgcolor: deepOrange[500] }}>
-                      {user.displayname.charAt(0).toUpperCase()}
-                    </Avatar>
-                  </ConnectedBadge>
-                ) : (
-                  <DisconnectBadge
-                    overlap="circular"
-                    anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-                    variant="dot"
-                  >
-                    <Avatar sx={{ bgcolor: deepOrange[500] }}>
-                      {user.displayname.charAt(0).toUpperCase()}
-                    </Avatar>
-                  </DisconnectBadge>
-                )}
-
-                <ListItemText
-                  primary={user.displayname}
-                  sx={{
-                    marginLeft: "0.5rem",
-                  }}
-                />
-              </ListItemButton>
-            </Tooltip>
-          ))}
-        </List>
-      </Drawer>
-      <Box
-        component="main"
-        sx={{
-          backgroundColor: (theme) =>
-            theme.palette.mode === "light"
-              ? theme.palette.grey[100]
-              : theme.palette.grey[900],
-          flexGrow: 1,
-          height: "100vh",
+    <Layout
+      style={{
+        minHeight: "100vh",
+      }}
+    >
+      <Sider
+        theme={mode ? "dark" : "light"}
+        trigger={null}
+        collapsible
+        collapsed={collapsed}
+        width={250}
+        style={{
           overflow: "auto",
+          height: "100vh",
+          position: "fixed",
+          left: 0,
+          top: 0,
+          bottom: 0,
+          zIndex: 2,
         }}
       >
-        <Toolbar />
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-          <Copyright sx={{ pt: 4 }} />
-        </Container>
-      </Box>
-      <Backdrop
-        sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
-        open={loading}
-      >
-        <CircularProgress color="inherit" />
-      </Backdrop>
+        <div className="demo-logo-vertical">
+          <CgHashtag
+            style={{
+              fontSize: 60,
+            }}
+          />
+        </div>
+        <Menu
+          defaultSelectedKeys={["0"]}
+          theme={mode ? "dark" : "light"}
+          mode="inline"
+          items={items}
+        />
+      </Sider>
+      <Layout>
+        <Header
+          style={{
+            padding: 0,
+            background: colorBgContainer,
+            display: "flex",
+            direction: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            position: "sticky",
+            top: 0,
+            zIndex: 1,
+            width: "100%",
+          }}
+        >
+          <Tooltip
+            title={collapsed ? "Expandir" : "Colapsar"}
+            placement="right"
+          >
+            <Button
+              type="text"
+              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              onClick={() => setCollapsed(!collapsed)}
+              style={{
+                fontSize: "16px",
+                width: 64,
+                height: 64,
+                marginLeft: collapsed ? 80 : 250,
+              }}
+            />
+          </Tooltip>
+          <div
+            style={{
+              display: channelSelected ? "block" : "none",
+              position: "sticky",
+              top: 0,
+              left: collapsed ? 96 : 290,
+            }}
+          >
+            <Space
+              direction="horizontal"
+              style={{
+                display: "flex",
+                direction: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <span
+                style={{
+                  marginRight: "auto",
+                  padding: 0,
+                }}
+              >
+                <CgHashtag /> {channelSelected && channelSelected.slug}
+              </span>
+              {channelSelected && channelSelected.created_by === user.id && (
+                <Tooltip title="Opciones" placement="right">
+                  <Button
+                    type="text"
+                    style={{
+                      marginTop: 5,
+                    }}
+                    shape="circle"
+                    icon={
+                      <SlOptionsVertical
+                        style={{
+                          color: mode ? "white" : "black",
+                        }}
+                      />
+                    }
+                    onClick={() => {
+                      handleOpenModalOptions();
+                    }}
+                  />
+                </Tooltip>
+              )}
+            </Space>
+          </div>
+          <Button type="text" icon={<CgLogOut />} onClick={logOut} />
+        </Header>
+        <Content
+          style={{
+            marginTop: "24px",
+            marginLeft: collapsed ? 96 : 266,
+            marginRight: 16,
+            padding: 24,
+            minHeight: 280,
+            background: colorBgContainer,
+            borderRadius: 10,
+          }}
+        >
+          {component}
+
+          <div
+            style={{
+              position: "fixed",
+              bottom: 60,
+              display: channelSelected ? "block" : "none",
+            }}
+          >
+            {emojiPicker}
+          </div>
+
+          <Space.Compact
+            direction="horizontal"
+            style={{
+              display: channelSelected ? "block" : "none",
+              position: "fixed",
+              left: collapsed ? 96 : 290,
+              bottom: 10,
+              maxWidth: "calc(100% - 330px)",
+              width: "calc(100% - 300px)",
+            }}
+          >
+            <Tooltip title="Insertar Emote">
+              <Button
+                type="default"
+                icon={<GrEmoji />}
+                size="small"
+                style={{
+                  color: mode ? "white" : "black",
+                  padding: 0,
+                  width: "5%",
+                }}
+                onClick={() =>
+                  setEmojiPicker(
+                    <EmojiPicker
+                      theme="auto"
+                      onEmojiClick={(emoji) => {
+                        console.log(emoji);
+                        setMensaje(
+                          (mensaje) => mensaje + " " + emoji.emoji + " ",
+                        );
+                        setEmojiPicker(null);
+                      }}
+                    />,
+                  )
+                }
+              />
+            </Tooltip>
+            <Input
+              enterKeyHint="send"
+              onPressEnter={sendMessage}
+              onFocus={() => setEmojiPicker(null)}
+              placeholder="Escribe tu mensaje aquí"
+              value={mensaje}
+              onChange={(e) => setMensaje(e.target.value)}
+              style={{
+                width: "90%",
+              }}
+            />
+            <Tooltip title="Enviar mensaje">
+              <Button
+                type="default"
+                icon={<SendOutlined />}
+                size="small"
+                style={{
+                  color: mode ? "white" : "black",
+                  padding: 0,
+                  width: "5%",
+                }}
+                onClick={sendMessage}
+              />
+            </Tooltip>
+          </Space.Compact>
+        </Content>
+      </Layout>
       <ModalCreateChannel
+        user={user}
         open={openModalCreateChannel}
         setOpen={setOpenModalCreateChannel}
-        user={user}
       />
-    </Box>
+    </Layout>
   );
 };
