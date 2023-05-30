@@ -1,8 +1,49 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { DownOutlined, UserOutlined } from "@ant-design/icons";
-import { Button, Dropdown, Space, Tooltip, message } from "antd";
+import { Avatar, Button, Dropdown, Space, Tooltip, message } from "antd";
 import { client } from "../supabase/supabaseClient";
+import { UserProfileConfig } from "./UserProfileConfig";
+
 export const UserMenu = ({ user, style }) => {
+  const [usuario, setUsuario] = useState({
+    displayname: "",
+    profilePic: "",
+  });
+  const [openModalConfig, setOpenModalConfig] = useState(false);
+
+  const [messageApi, contextHolder] = message.useMessage();
+
+  useEffect(() => {
+    const getAllUsers = async () => {
+      const { data, error } = await client
+        .from("users")
+        .select("*")
+        .order("id", { ascending: true });
+      if (data) {
+        setUsuario(data.find((data) => data.id === user.id));
+      } else {
+        console.log(error.message);
+      }
+    };
+    getAllUsers();
+
+    const users = client
+      .channel("update-user")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "users" },
+        (payload) => {
+          console.log("Change received!", payload);
+          setUsuario({ ...usuario, profilePic: payload.new.profilePic });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      users.unsubscribe();
+    };
+  }, []);
+
   const logOut = async () => {
     try {
       const { error } = await client.auth.signOut();
@@ -21,6 +62,14 @@ export const UserMenu = ({ user, style }) => {
       logOut();
     }
   };
+
+  const handleConfigProfile = () => {
+    messageApi.loading("Cargando...", 1);
+    setTimeout(() => {
+      setOpenModalConfig(true);
+    }, 1000);
+  };
+
   const items = [
     {
       label: "Cerrar sesión",
@@ -45,13 +94,33 @@ export const UserMenu = ({ user, style }) => {
   };
 
   return (
-    <Dropdown.Button
-      style={style}
-      menu={menuProps}
-      placement="bottom"
-      icon={<UserOutlined />}
-    >
-      {user.displayname}
-    </Dropdown.Button>
+    <React.Fragment>
+      {contextHolder}
+      <Dropdown.Button
+        size="large"
+        style={style}
+        menu={menuProps}
+        placement="bottom"
+        icon={
+          <Avatar
+            src={usuario && usuario.profilePic}
+            size={38}
+            style={{
+              marginTop: "-5px",
+            }}
+          >
+            {usuario ? usuario.displayname[0] : null}
+          </Avatar>
+        }
+        onClick={handleConfigProfile}
+      >
+        {usuario.displayname}
+      </Dropdown.Button>
+      <UserProfileConfig
+        user={usuario}
+        open={openModalConfig}
+        setOpen={setOpenModalConfig}
+      />
+    </React.Fragment>
   );
 };

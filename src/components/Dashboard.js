@@ -179,7 +179,7 @@ export const Dashboard = ({ user, mode, setMode }) => {
       });
 
       const usersOnlineexceptMe = usersOnline.filter(
-        (usuario) => usuario.id !== user.id,
+        (usuario) => usuario.id !== user.id
       );
 
       console.log(usersOnline);
@@ -188,8 +188,8 @@ export const Dashboard = ({ user, mode, setMode }) => {
       setUsersOnline(
         usersOnlineexceptMe.sort(
           (a, b) =>
-            b.online - a.online || a.displayname?.localeCompare(b.displayname),
-        ),
+            b.online - a.online || a.displayname?.localeCompare(b.displayname)
+        )
       );
       //remove duplicates users from usersOnline
     });
@@ -217,17 +217,17 @@ export const Dashboard = ({ user, mode, setMode }) => {
           }
           if (payload.eventType === "DELETE") {
             setChannels((channels) =>
-              channels.filter((channel) => channel.id !== payload.old.id),
+              channels.filter((channel) => channel.id !== payload.old.id)
             );
           }
           if (payload.eventType === "UPDATE") {
             setChannels((channels) =>
               channels.map((channel) =>
-                channel.id === payload.new.id ? payload.new : channel,
-              ),
+                channel.id === payload.new.id ? payload.new : channel
+              )
             );
           }
-        },
+        }
       )
       .subscribe();
 
@@ -242,11 +242,12 @@ export const Dashboard = ({ user, mode, setMode }) => {
           if (payload.eventType === "INSERT") {
             if (payload.new.member_id === user.id) await getCanales();
           }
-        },
+        }
       )
       .subscribe();
 
     return () => {
+      //  users.unsubscribe();
       channel.unsubscribe();
       channelCanales.unsubscribe();
       channelMembers.unsubscribe();
@@ -387,7 +388,7 @@ export const Dashboard = ({ user, mode, setMode }) => {
         onClick: () => {
           setChannelSelected(usuario);
           setComponent(
-            <ChatMessages canal={usuario} mode={mode} user={user} />,
+            <ChatMessages canal={usuario} mode={mode} user={user} />
           );
         },
       };
@@ -401,7 +402,7 @@ export const Dashboard = ({ user, mode, setMode }) => {
       const { data, error } = await createMessage(
         mensaje,
         channelSelected.id,
-        user.id,
+        user.id
       );
       if (data) {
         console.log(data);
@@ -530,6 +531,7 @@ export const Dashboard = ({ user, mode, setMode }) => {
             <UserMenu
               style={{
                 marginRight: "auto",
+                padding: 0,
               }}
               user={user}
             />
@@ -594,11 +596,11 @@ export const Dashboard = ({ user, mode, setMode }) => {
                           onEmojiClick={(emoji) => {
                             console.log(emoji);
                             setMensaje(
-                              (mensaje) => mensaje + " " + emoji.emoji + " ",
+                              (mensaje) => mensaje + " " + emoji.emoji + " "
                             );
                             setEmojiPicker(null);
                           }}
-                        />,
+                        />
                       )
                     }
                   />
