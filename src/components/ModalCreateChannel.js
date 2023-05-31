@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useRef } from "react";
 
 import {
   getAllUsers,
@@ -6,31 +6,36 @@ import {
   createChannel,
   createChannelMembers,
 } from "../supabase/queries";
-import { Input, Modal, Select, Typography } from "antd";
+import { client } from "../supabase/supabaseClient";
+import { Input, Modal, Select, Typography, Tag, theme, message } from "antd";
+import { blue } from "@ant-design/colors";
 
 export const ModalCreateChannel = ({ user, open, setOpen }) => {
-  const [allUsers, setAllUsers] = React.useState([]);
-  const [allChannels, setAllChannels] = React.useState([]);
-  const [channelName, setChannelName] = React.useState("");
-  const [channelMembers, setChannelMembers] = React.useState([]);
-  const [errorChannelName, setErrorChannelName] = React.useState({
+  const [messageApi, contextHolder] = message.useMessage();
+  const [allUsers, setAllUsers] = useState([]);
+  const [allChannels, setAllChannels] = useState([]);
+  const [channelName, setChannelName] = useState("");
+  const [channelMembers, setChannelMembers] = useState([]);
+  const [errorChannelName, setErrorChannelName] = useState({
     error: false,
     message: "",
   });
+  const [tags, setTags] = useState([]);
+  const [emailToInvite, setEmailToInvite] = useState("");
 
   useEffect(() => {
     const getUsers = async () => {
       const users = await getAllUsers();
       if (users && !users.error) {
         const usersExceptMe = users.data.filter(
-          (usuario) => usuario.id !== user.id,
+          (usuario) => usuario.id !== user.id
         );
         const usersExceptMeOptions = usersExceptMe.map((usuario) => {
           return { value: usuario.id, label: usuario.displayname };
         });
         setAllUsers(usersExceptMeOptions);
       } else {
-        alert(users.error.message);
+        messageApi.error(users.error.message);
         return [];
       }
     };
@@ -40,7 +45,7 @@ export const ModalCreateChannel = ({ user, open, setOpen }) => {
       if (channels && !channels.error) {
         setAllChannels(channels.data);
       } else {
-        alert(channels.error.message);
+        messageApi.error(channels.error.message);
         return [];
       }
     };
@@ -56,7 +61,7 @@ export const ModalCreateChannel = ({ user, open, setOpen }) => {
   const handleChannelNameChange = (event) => {
     const exists = allChannels.find(
       (channel) =>
-        channel.slug.toUpperCase() === event.target.value.toUpperCase().trim(),
+        channel.slug.toUpperCase() === event.target.value.toUpperCase().trim()
     );
     if (exists) {
       setErrorChannelName({
@@ -89,34 +94,55 @@ export const ModalCreateChannel = ({ user, open, setOpen }) => {
     if (result && !result.error) {
       console.log("se creo el canal");
       const channel = result.data[0];
-      channelMembers.forEach(async (member) => {
-        const usuario = allUsers.find(
-          (usuario) => usuario.value === member.value,
-        );
-        const resultMembers = await createChannelMembers(
-          usuario.value,
-          user.id,
-          channel.id,
-        );
+      if (channelMembers.length !== 0) {
+        channelMembers.forEach(async (member) => {
+          const usuario = allUsers.find(
+            (usuario) => usuario.value === member.value
+          );
+          const resultMembers = await createChannelMembers(
+            usuario.value,
+            user.id,
+            channel.id
+          );
 
-        if (resultMembers && !resultMembers.error) {
-          console.log("se creo el miembro");
-          handleClose();
-        } else {
-          alert(resultMembers.error.message);
+          if (resultMembers && !resultMembers.error) {
+            console.log("se creo el miembro");
+            handleClose();
+          } else {
+            messageApi.error(resultMembers.error.message);
+          }
+        });
+      } else {
+        if (tags.length !== 0) {
+          tags.map(async (email) => {
+            const { data, error } = await client.auth.admin.inviteUserByEmail(
+              email
+            );
+
+            if (error) {
+              messageApi.error(error.message);
+              return;
+            } else {
+              messageApi.success("Se ha enviado una invitación a " + email);
+            }
+          });
         }
-      });
+      }
+      setOpen(false);
+      setChannelMembers([]);
+      setChannelName("");
+      setTags([]);
     } else {
-      alert(result.error.message);
+      messageApi.error(result.error.message);
     }
   };
 
   return (
     <div>
+      {contextHolder}
       <Modal
         open={open}
         onClose={handleClose}
-        aria-labelledby="draggable-dialog-title"
         onOk={handleCreateChannel}
         onCancel={handleClose}
         okText="Crear canal"
@@ -128,7 +154,7 @@ export const ModalCreateChannel = ({ user, open, setOpen }) => {
           autoFocus
           placeholder="Nombre del canal"
           type="text"
-          style={{ marginBottom: 2 }}
+          style={{ marginBottom: 10 }}
           value={channelName}
           onChange={handleChannelNameChange}
           status={errorChannelName.error ? "error" : "success"}
@@ -156,6 +182,55 @@ export const ModalCreateChannel = ({ user, open, setOpen }) => {
             setChannelMembers(value);
           }}
         />
+        <Input
+          autoFocus
+          placeholder="Invitar a traductores por email"
+          type="email"
+          style={{ marginBottom: 10, marginTop: 10 }}
+          value={emailToInvite}
+          onChange={(e) => setEmailToInvite(e.target.value)}
+          onPressEnter={(e) => {
+            if (e.target.value) {
+              setTags([...tags, e.target.value]);
+              setEmailToInvite("");
+            }
+          }}
+          suffix={
+            <Typography.Text
+              style={{
+                color: blue.primary,
+                cursor: "pointer",
+              }}
+              onClick={() => {
+                if (emailToInvite) {
+                  setTags([...tags, emailToInvite]);
+                  setEmailToInvite("");
+                }
+              }}
+            >
+              Agregar
+            </Typography.Text>
+          }
+        />
+
+        {tags.map((tag, i) => {
+          return (
+            <Tag
+              key={i}
+              style={{
+                marginBottom: 5,
+              }}
+              closable
+              onClose={(e) => {
+                e.preventDefault();
+                const newTags = tags.filter((t) => t !== tag);
+                setTags(newTags);
+              }}
+            >
+              {tag}
+            </Tag>
+          );
+        })}
       </Modal>
     </div>
   );

@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { client } from "../supabase/supabaseClient";
-import { Modal, Typography, Input, message } from "antd";
+import { Modal, Typography, Input, message, Space } from "antd";
 
 const { Title, Text } = Typography;
 
 export const ResetPassword = (props) => {
-  const { open, setOpen } = props;
+  const { open, setOpen, user } = props;
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -18,11 +18,12 @@ export const ResetPassword = (props) => {
       alert("Las contraseñas no coinciden");
       return;
     }
-    const { data, error } = await client.auth.updateUser({
+    const { data, error } = await client.auth.admin.updateUserById(user.id, {
       password: password,
     });
     if (error) {
       messageApi.error("No se pudo actualizar la contraseña");
+      console.log(error.message);
     }
     if (data) {
       setConfirmLoading(false);
@@ -48,19 +49,28 @@ export const ResetPassword = (props) => {
         confirmLoading={confirmLoading}
         onCancel={handleCancel}
       >
-        <Title level={3}>Restablecer contraseña</Title>
-        <Text>La contraseña debe tener al menos 8 caracteres y un número.</Text>
+        <Space
+          direction="vertical"
+          style={{
+            width: "100%",
+          }}
+        >
+          <Title level={3}>Restablecer contraseña</Title>
+          <Text>
+            La contraseña debe tener al menos 8 caracteres y un número.
+          </Text>
 
-        <Input.Password
-          placeholder="Contraseña"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <Input.Password
-          placeholder="Confirmar contraseña"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-        />
+          <Input.Password
+            placeholder="Contraseña"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <Input.Password
+            placeholder="Confirmar contraseña"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+          />
+        </Space>
       </Modal>
     </div>
   );

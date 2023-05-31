@@ -7,6 +7,7 @@ import { ResetPassword } from "./ResetPassword";
 
 export const Main = () => {
   const [session, setSession] = useState(null);
+  const [sessionResetPassword, setSessionResetPassword] = useState(null);
   const [openModalRecover, setOpenModalRecover] = useState(false);
   const [mode, setMode] = useState(false);
   const { defaultAlgorithm, darkAlgorithm } = theme;
@@ -27,7 +28,8 @@ export const Main = () => {
     } = client.auth.onAuthStateChange(async (_event, session) => {
       if (_event === "PASSWORD_RECOVERY") {
         setOpenModalRecover(true);
-        await client.auth.signOut();
+        setSessionResetPassword(session);
+        client.auth.signOut();
       }
       if (_event === "SIGNED_IN") {
         setSession(session);
@@ -50,9 +52,17 @@ export const Main = () => {
       {session ? (
         <Dashboard user={session.user} mode={mode} setMode={setMode} />
       ) : (
-        <Login />
+        <>
+          <Login />
+          {sessionResetPassword && (
+            <ResetPassword
+              open={openModalRecover}
+              setOpen={setOpenModalRecover}
+              user={sessionResetPassword?.user}
+            />
+          )}
+        </>
       )}
-      <ResetPassword open={openModalRecover} setOpen={setOpenModalRecover} />
     </ConfigProvider>
   );
 };

@@ -26,7 +26,9 @@ export const UserMenu = ({ user, style }) => {
       }
     };
     getAllUsers();
+  }, [user]);
 
+  useEffect(() => {
     const users = client
       .channel("update-user")
       .on(
@@ -34,7 +36,11 @@ export const UserMenu = ({ user, style }) => {
         { event: "UPDATE", schema: "public", table: "users" },
         (payload) => {
           console.log("Change received!", payload);
-          setUsuario({ ...usuario, profilePic: payload.new.profilePic });
+          setUsuario({
+            ...usuario,
+            profilePic: payload.new.profilePic,
+            displayname: payload.new.displayname,
+          });
         }
       )
       .subscribe();
@@ -42,7 +48,7 @@ export const UserMenu = ({ user, style }) => {
     return () => {
       users.unsubscribe();
     };
-  }, []);
+  }, [usuario.profilePic]);
 
   const logOut = async () => {
     try {
@@ -109,12 +115,14 @@ export const UserMenu = ({ user, style }) => {
               marginTop: "-5px",
             }}
           >
-            {usuario ? usuario.displayname[0] : null}
+            {usuario.displayname !== "" &&
+              usuario.displayname !== null &&
+              usuario.displayname[0]}
           </Avatar>
         }
         onClick={handleConfigProfile}
       >
-        {usuario.displayname}
+        {usuario.displayname !== "" && usuario.displayname}
       </Dropdown.Button>
       <UserProfileConfig
         user={usuario}

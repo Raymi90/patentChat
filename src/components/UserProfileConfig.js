@@ -1,4 +1,13 @@
-import { Image, Modal, Tooltip, Upload, message } from "antd";
+import {
+  Avatar,
+  Button,
+  Image,
+  Input,
+  Modal,
+  Tooltip,
+  Upload,
+  message,
+} from "antd";
 import React, { useEffect, useState } from "react";
 import { LoadingOutlined, PlusOutlined } from "@ant-design/icons";
 import { client } from "../supabase/supabaseClient";
@@ -10,6 +19,41 @@ export const UserProfileConfig = (props) => {
 
   const [loading, setLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState(null);
+  const [contraseña, setContraseña] = useState("");
+  const [confirmarContraseña, setConfirmarContraseña] = useState("");
+  const [changePassword, setChangePassword] = useState(false);
+
+  const [usuario, setUsuario] = useState({
+    displayname: "",
+    profilePic: "",
+  });
+
+  useEffect(() => {
+    console.log(user);
+    const getUser = async () => {
+      const { data, error } = await client.auth.admin.getUserById(user.id);
+      if (data) {
+        console.log(data);
+      }
+      if (error) {
+        console.log(error.message);
+      }
+    };
+
+    const getAllUsers = async () => {
+      const { data, error } = await client
+        .from("users")
+        .select("*")
+        .order("id", { ascending: true });
+      if (data) {
+        setUsuario(data.find((data) => data.id === user.id));
+      } else {
+        console.log(error.message);
+      }
+    };
+    getUser();
+    getAllUsers();
+  }, [open]);
 
   useEffect(() => {
     if (user) {
@@ -31,7 +75,7 @@ export const UserProfileConfig = (props) => {
     return () => {
       users.unsubscribe();
     };
-  }, [user]);
+  }, []);
 
   const beforeUpload = (file) => {
     const isJpgOrPng = file.type === "image/jpeg" || file.type === "image/png";
@@ -70,11 +114,47 @@ export const UserProfileConfig = (props) => {
     </div>
   );
 
+  const handleUpdateProfile = async () => {
+    const { error } = await client
+      .from("users")
+      .update({ displayname: usuario.displayname, profilePic: imageUrl })
+      .eq("id", user.id);
+    if (error) {
+      messageApi.error(error.message);
+    } else {
+      messageApi.success("Perfil actualizado");
+      setOpen(false);
+    }
+
+    if (changePassword) {
+      if (contraseña === confirmarContraseña) {
+        const { data, error } = await client.auth.admin.updateUserById(
+          user.id,
+          {
+            password: contraseña,
+          }
+        );
+        if (error) {
+          messageApi.error(error.message);
+        }
+        if (data) {
+          messageApi.success("Contraseña actualizada");
+          setContraseña("");
+          setConfirmarContraseña("");
+          setChangePassword(false);
+          setOpen(false);
+        }
+      } else {
+        messageApi.error("Las contraseñas no coinciden");
+      }
+    }
+  };
+
   return (
     <Modal
       title={"Configuración de perfil de " + user.displayname}
       open={open}
-      onOk={() => setOpen(false)}
+      onOk={handleUpdateProfile}
       okText="Guardar"
       cancelText="Cerrrar"
       onCancel={() => setOpen(false)}
@@ -111,6 +191,7 @@ export const UserProfileConfig = (props) => {
                 messageApi.error(errorDelete.message);
                 return;
               } else {
+                console.log("Deleted");
               }
             }
           }
@@ -136,31 +217,20 @@ export const UserProfileConfig = (props) => {
               return;
             }
             if (publicObject) {
-              const { error: errorUpdate } = await client
-                .from("users")
-                .update({ profilePic: publicObject.publicUrl })
-                .eq("id", user.id);
-              if (errorUpdate) {
-                messageApi.error(errorUpdate.message);
-                return;
-              } else {
-                messageApi.success("Foto de perfil actualizada");
-                setImageUrl(publicObject.publicUrl);
-                setLoading(false);
-              }
+              setImageUrl(publicObject.publicUrl);
+              setLoading(false);
             }
           }
         }}
       >
         {imageUrl ? (
           <Tooltip title="Cambiar foto de perfil" placement="left">
-            <Image
-              preview={false}
+            <Avatar
               src={imageUrl}
               alt="avatar"
               style={{
                 width: "100%",
-                borderRadius: "50%",
+                height: "100%",
               }}
             />
           </Tooltip>
@@ -168,6 +238,48 @@ export const UserProfileConfig = (props) => {
           uploadButton
         )}
       </Upload>
+
+      <Input
+        placeholder="Nombre"
+        value={usuario?.displayname}
+        onChange={(e) => {
+          const { value } = e.target;
+          setUsuario({ ...usuario, displayname: value });
+        }}
+      />
+
+      <Input
+        placeholder="Correo electrónico"
+        value={usuario?.username}
+        disabled
+        style={{ marginTop: 10 }}
+      />
+
+      <Button
+        type="link"
+        onClick={() => {
+          setChangePassword(!changePassword);
+        }}
+      >
+        Cambiar contraseña
+      </Button>
+      <Input.Password
+        placeholder="Contraseña"
+        type="password"
+        disabled={!changePassword}
+        value={user?.password}
+        style={{ marginTop: 10 }}
+        onChange={(e) => setContraseña(e.target.value)}
+      />
+      {changePassword ? (
+        <Input.Password
+          placeholder="Confirmar contraseña"
+          type="password"
+          value={confirmarContraseña}
+          style={{ marginTop: 10 }}
+          onChange={(e) => setConfirmarContraseña(e.target.value)}
+        />
+      ) : null}
     </Modal>
   );
 };
