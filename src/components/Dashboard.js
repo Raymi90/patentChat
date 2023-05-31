@@ -9,11 +9,7 @@ import {
 } from "../supabase/queries";
 //import { ModalCreateChannel } from "./ModalCreateChannel";
 //import { ChannelMenu } from "./ChannelMenu";
-import {
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
-  UserOutlined,
-} from "@ant-design/icons";
+import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import {
   Button,
   Layout,
@@ -23,7 +19,6 @@ import {
   Typography,
   Tooltip,
   Input,
-  Divider,
   Badge,
   Avatar,
   Row,
@@ -246,8 +241,25 @@ export const Dashboard = ({ user, mode, setMode }) => {
       )
       .subscribe();
 
+    const users = client
+      .channel("update-userOnline")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "users" },
+        (payload) => {
+          console.log("Change received!", payload);
+
+          setUsersOnline(
+            usersOnline.map((user) =>
+              user.id === payload.new.id ? payload.new : user
+            )
+          );
+        }
+      )
+      .subscribe();
+
     return () => {
-      //  users.unsubscribe();
+      users.unsubscribe();
       channel.unsubscribe();
       channelCanales.unsubscribe();
       channelMembers.unsubscribe();
@@ -378,10 +390,7 @@ export const Dashboard = ({ user, mode, setMode }) => {
         ),
         title: usuario.displayname,
         icon: (
-          <Avatar
-            size="small"
-            src="https://aldecoaelias.com/images/thumbs/04.jpeg"
-          >
+          <Avatar size="small" src={usuario.profilePic}>
             {usuario.displayname ? usuario.displayname[0] : null}
           </Avatar>
         ),
